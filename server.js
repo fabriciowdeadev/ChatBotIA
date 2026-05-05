@@ -257,6 +257,13 @@ function startBot() {
   waClient.on('message', handleMessage);
   waClient.on('message_create', handleMessage);
 
+  // Remove Chromium singleton lock files left by a crashed/restarted container
+  const profileDir = path.join(DATA_DIR, '.wwebjs_auth', 'session-klebinho-bot');
+  ['SingletonLock', 'SingletonCookie', 'SingletonSocket'].forEach(f => {
+    const p = path.join(profileDir, f);
+    try { require('fs').unlinkSync(p); console.log('[Bot] Lock removido:', f); } catch {}
+  });
+
   console.log('[Bot] Inicializando Chromium/WhatsApp Web...');
   waClient.initialize();
   io.emit('status', 'initializing');
