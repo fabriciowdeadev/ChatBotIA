@@ -30,12 +30,21 @@ const CLIENTS_FILE      = path.join(DATA_DIR, 'clients.json');
 const INSTRUCTIONS_FILE = path.join(DATA_DIR, 'instrucoes.txt');
 const INSTRUCTIONS_DEFAULT = path.join(__dirname, 'instrucoes.txt');
 
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(CLIENTS_FILE)) fs.writeFileSync(CLIENTS_FILE, '{}');
+if (!fs.existsSync(DATA_DIR)) { fs.mkdirSync(DATA_DIR, { recursive: true }); console.log('[Init] Diretorio data/ criado'); }
+if (!fs.existsSync(CLIENTS_FILE)) { fs.writeFileSync(CLIENTS_FILE, '{}'); console.log('[Init] clients.json criado'); }
 // On first run, copy default instructions into the data volume
 if (!fs.existsSync(INSTRUCTIONS_FILE) && fs.existsSync(INSTRUCTIONS_DEFAULT)) {
   fs.copyFileSync(INSTRUCTIONS_DEFAULT, INSTRUCTIONS_FILE);
+  console.log('[Init] instrucoes.txt copiado para data/');
+} else if (fs.existsSync(INSTRUCTIONS_FILE)) {
+  console.log('[Init] instrucoes.txt carregado de data/');
+} else {
+  console.warn('[Init] AVISO: instrucoes.txt nao encontrado!');
 }
+console.log('[Config] GEMINI_API_KEY:', GEMINI_API_KEY ? 'OK' : 'NAO DEFINIDA');
+console.log('[Config] MAPS_API_KEY:', MAPS_API_KEY ? 'OK' : 'NAO DEFINIDA');
+console.log('[Config] DELIVERY_ORIGIN:', DELIVERY_ORIGIN || 'NAO DEFINIDA');
+console.log('[Config] PANEL_PASSWORD:', PANEL_PASSWORD ? 'OK' : 'NAO DEFINIDA');
 
 // ─── State ─────────────────────────────────────────────────────────────────────
 let waClient    = null;
@@ -57,6 +66,7 @@ function verifyPassword(req, res, next) {
 
 // ─── Google Maps frete ─────────────────────────────────────────────────────────
 async function calcularFrete(endereco) {
+  console.log('[Frete] Calculando para:', endereco);
   try {
     const resp = await axios.get('https://maps.googleapis.com/maps/api/distancematrix/json', {
       params: {
@@ -67,12 +77,13 @@ async function calcularFrete(endereco) {
       },
     });
     const el = resp.data?.rows?.[0]?.elements?.[0];
-    if (!el || el.status !== 'OK') return null;
+    if (!el || el.status !== 'OK') { console.warn('[Frete] Status Maps:', el?.status); return null; }
     const km    = el.distance.value / 1000;
     const frete = 5 + Math.ceil(km) * PRICE_PER_KM;
+    console.log('[Frete]', km.toFixed(2) + 'km -> R$', frete.toFixed(2));
     return { frete, km };
   } catch (err) {
-    console.error('Erro calcularFrete:', err.message);
+    console.error('[Frete] Erro:', err.message);
     return null;
   }
 }
@@ -81,6 +92,7 @@ async function calcularFrete(endereco) {
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 async function chatWithGemini(phoneNumber, userMessage) {
+  console.log('[Gemini] Mensagem de ' + phoneNumber + ':', userMessage.substring(0, 80));
   const clients    = loadClients();
   const clientName = clients[phoneNumber] || null;
   const instructions = getInstructions();
@@ -109,6 +121,7 @@ async function chatWithGemini(phoneNumber, userMessage) {
   const nameMatch = text.match(/\[registrarNome:([^\]]+)\]/i);
   if (nameMatch) {
     const nome = nameMatch[1].trim();
+    console.log('[Bot] Registrando nome:', nome, '-> ' + phoneNumber);
     const cls = loadClients();
     cls[phoneNumber] = nome;
     saveClients(cls);
@@ -163,12 +176,14 @@ function startBot() {
   });
 
   waClient.on('qr', (qr) => {
+    console.log('[Bot] QR Code gerado — aguardando leitura...');
     currentQR = qr;
     io.emit('qr', qr);
     io.emit('status', 'waiting_qr');
   });
 
   waClient.on('authenticated', () => {
+    console.log('[Bot] Autenticado com sucesso!');
     io.emit('status', 'authenticated');
   });
 
@@ -181,8 +196,8 @@ function startBot() {
   });
 
   waClient.on('auth_failure', (msg) => {
+    console.error('[Bot] Falha de autenticacao:', msg);
     io.emit('status', 'auth_failure');
-    console.error('[Bot] Falha de autenticação:', msg);
   });
 
   waClient.on('disconnected', (reason) => {
@@ -200,19 +215,25 @@ function startBot() {
     if (!body) return;
 
     const phoneNumber = message.from.replace('@c.us', '');
+    console.log('[Msg] De:', phoneNumber, '|', body.substring(0, 60));
     try {
       const reply = await chatWithGemini(phoneNumber, body);
-      if (reply) await message.reply(reply);
+      if (reply) {
+        console.log('[Msg] Resposta para', phoneNumber + ':', reply.substring(0, 80));
+        await message.reply(reply);
+      }
     } catch (err) {
       console.error('[Bot] Erro ao responder:', err.message);
     }
   });
 
+  console.log('[Bot] Inicializando Chromium/WhatsApp Web...');
   waClient.initialize();
   io.emit('status', 'initializing');
 }
 
 async function stopBot() {
+  console.log('[Bot] Encerrando...');
   if (waClient) {
     try { await waClient.destroy(); } catch {}
     waClient = null;
