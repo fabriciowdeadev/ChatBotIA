@@ -230,8 +230,15 @@ function startBot() {
     return _origEmit(event, ...args);
   };
 
+  // Dedup set: prevents processing the same message twice when both events fire
+  const processedIds = new Set();
+
   // Listen on both events for maximum compatibility
   const handleMessage = async (message) => {
+    const msgId = message.id?._serialized || message.id?.id;
+    if (msgId && processedIds.has(msgId)) return;
+    if (msgId) { processedIds.add(msgId); setTimeout(() => processedIds.delete(msgId), 10000); }
+
     console.log('[RawMsg] fromMe:', message.fromMe, '| from:', message.from, '| type:', message.type, '| body:', (message.body || '').substring(0, 60));
     if (message.fromMe) return;
     if (message.from.endsWith('@g.us')) return;
