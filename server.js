@@ -14,6 +14,7 @@ const io = new Server(server);
 
 app.use(express.json());
 app.use(express.static('public'));
+app.use('/qrcode.min.js', express.static(path.join(__dirname, 'node_modules/qrcode/build/qrcode.min.js')));
 
 // ─── Config ────────────────────────────────────────────────────────────────────
 const PANEL_PASSWORD    = process.env.PANEL_PASSWORD || 'lanch102938';
