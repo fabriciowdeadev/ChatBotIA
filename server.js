@@ -165,6 +165,10 @@ function startBot() {
       clientId: 'klebinho-bot',
       dataPath:  path.join(DATA_DIR, '.wwebjs_auth'),
     }),
+    webVersionCache: {
+      type: 'remote',
+      remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1017533896.html',
+    },
     puppeteer: {
       headless: true,
       args: [
@@ -172,6 +176,9 @@ function startBot() {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--disable-features=MemorySaverMode',
+        '--memory-pressure-off',
       ],
     },
   });
@@ -214,7 +221,9 @@ function startBot() {
     console.log('[Bot] Desconectado:', reason);
   });
 
-  waClient.on('message', async (message) => {
+  // message_create fires for all messages (in+out); message event has reliability bugs in newer WA versions
+  waClient.on('message_create', async (message) => {
+    if (message.fromMe) return; // ignore sent messages
     // Only private chats
     if (message.from.endsWith('@g.us')) return;
     if (!message.from.endsWith('@c.us')) return;
