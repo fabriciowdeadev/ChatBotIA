@@ -235,11 +235,13 @@ function startBot() {
     console.log('[RawMsg] fromMe:', message.fromMe, '| from:', message.from, '| type:', message.type, '| body:', (message.body || '').substring(0, 60));
     if (message.fromMe) return;
     if (message.from.endsWith('@g.us')) return;
-    if (!message.from.endsWith('@c.us')) return;
+    // Accept both @c.us (legacy) and @lid (new WhatsApp LID format)
+    if (!message.from.endsWith('@c.us') && !message.from.endsWith('@lid')) return;
     const body = message.body?.trim();
     if (!body) { console.log('[RawMsg] body vazio, ignorando'); return; }
 
-    const phoneNumber = message.from.replace('@c.us', '');
+    // Normalize phone number: strip @c.us or @lid suffix
+    const phoneNumber = message.from.replace(/@c\.us$|@lid$/, '');
     console.log('[Msg] De:', phoneNumber, '|', body.substring(0, 60));
     try {
       const reply = await chatWithGemini(phoneNumber, body);
