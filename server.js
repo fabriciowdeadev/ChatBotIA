@@ -51,7 +51,10 @@ console.log('[Config] PANEL_PASSWORD:', PANEL_PASSWORD ? 'OK' : 'NAO DEFINIDA');
 let waClient    = null;
 let botRunning  = false;
 let currentQR   = null;
-const chatHistory = {}; // { phoneNumber: [{role, parts}] }
+const chatHistory   = {}; // { phoneNumber: [{role, parts}] }
+const sessionStart  = {}; // { phoneNumber: timestamp } — início da sessão
+const ownerPaused   = {}; // { phoneNumber: timestamp } — dono assumiu conversa
+const TWO_HOURS     = 2 * 60 * 60 * 1000;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const loadClients  = () => { try { return JSON.parse(fs.readFileSync(CLIENTS_FILE, 'utf8')); } catch { return {}; } };
@@ -240,7 +243,17 @@ function startBot() {
     if (msgId) { processedIds.add(msgId); setTimeout(() => processedIds.delete(msgId), 10000); }
 
     console.log('[RawMsg] fromMe:', message.fromMe, '| from:', message.from, '| type:', message.type, '| body:', (message.body || '').substring(0, 60));
-    if (message.fromMe) return;
+
+    // ── Dono mandou mensagem para um cliente → pausar robô por 2h ──
+    if (message.fromMe) {
+      const to = (message.to || message._data?.id?.remote || '').replace(/@c\.us$|@lid$/, '');
+      if (to && !message.from.endsWith('@g.us')) {
+        ownerPaused[to] = Date.now();
+        console.log('[Bot] Pausa de 2h ativada para:', to);
+      }
+      return;
+    }
+
     if (message.from.endsWith('@g.us')) return;
     // Accept both @c.us (legacy) and @lid (new WhatsApp LID format)
     if (!message.from.endsWith('@c.us') && !message.from.endsWith('@lid')) return;
@@ -249,6 +262,27 @@ function startBot() {
 
     // Normalize phone number: strip @c.us or @lid suffix
     const phoneNumber = message.from.replace(/@c\.us$|@lid$/, '');
+
+    // ── Verificar pausa por intervenção do dono ──
+    if (ownerPaused[phoneNumber] && Date.now() - ownerPaused[phoneNumber] < TWO_HOURS) {
+      const restMin = Math.ceil((TWO_HOURS - (Date.now() - ownerPaused[phoneNumber])) / 60000);
+      console.log('[Bot] Pausado para', phoneNumber, '- restam', restMin, 'min');
+      return;
+    } else if (ownerPaused[phoneNumber]) {
+      delete ownerPaused[phoneNumber];
+    }
+
+    // ── Verificar expiração de sessão (2h desde o início) ──
+    if (sessionStart[phoneNumber] && Date.now() - sessionStart[phoneNumber] >= TWO_HOURS) {
+      console.log('[Bot] Sessão expirada para', phoneNumber, '— reiniciando conversa');
+      delete chatHistory[phoneNumber];
+      delete sessionStart[phoneNumber];
+    }
+    if (!sessionStart[phoneNumber]) {
+      sessionStart[phoneNumber] = Date.now();
+      console.log('[Bot] Nova sessão iniciada para', phoneNumber);
+    }
+
     console.log('[Msg] De:', phoneNumber, '|', body.substring(0, 60));
     try {
       const reply = await chatWithGemini(phoneNumber, body);
