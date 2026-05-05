@@ -221,14 +221,23 @@ function startBot() {
     console.log('[Bot] Desconectado:', reason);
   });
 
-  // message_create fires for all messages (in+out); message event has reliability bugs in newer WA versions
-  waClient.on('message_create', async (message) => {
-    if (message.fromMe) return; // ignore sent messages
-    // Only private chats
+  // Debug: log every internal event emitted by the client
+  const _origEmit = waClient.emit.bind(waClient);
+  waClient.emit = function(event, ...args) {
+    if (!['change_state', 'change_battery'].includes(event)) {
+      console.log('[Event]', event, typeof args[0] === 'object' ? JSON.stringify(args[0]).substring(0, 120) : args[0]);
+    }
+    return _origEmit(event, ...args);
+  };
+
+  // Listen on both events for maximum compatibility
+  const handleMessage = async (message) => {
+    console.log('[RawMsg] fromMe:', message.fromMe, '| from:', message.from, '| type:', message.type, '| body:', (message.body || '').substring(0, 60));
+    if (message.fromMe) return;
     if (message.from.endsWith('@g.us')) return;
     if (!message.from.endsWith('@c.us')) return;
     const body = message.body?.trim();
-    if (!body) return;
+    if (!body) { console.log('[RawMsg] body vazio, ignorando'); return; }
 
     const phoneNumber = message.from.replace('@c.us', '');
     console.log('[Msg] De:', phoneNumber, '|', body.substring(0, 60));
@@ -239,9 +248,12 @@ function startBot() {
         await message.reply(reply);
       }
     } catch (err) {
-      console.error('[Bot] Erro ao responder:', err.message);
+      console.error('[Bot] Erro ao responder:', err.message, err.stack);
     }
-  });
+  };
+
+  waClient.on('message', handleMessage);
+  waClient.on('message_create', handleMessage);
 
   console.log('[Bot] Inicializando Chromium/WhatsApp Web...');
   waClient.initialize();
