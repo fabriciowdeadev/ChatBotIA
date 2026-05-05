@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Klebinho Bot — Painel</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════ LOGIN ═══════════════ -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="logo">🍔 Klebinho Bot</div>
+      <p>Painel de Controle</p>
+      <form id="login-form">
+        <input
+          type="password"
+          id="password-input"
+          placeholder="Senha do painel"
+          autocomplete="current-password"
+          required
+        />
+        <button type="submit" class="btn btn-primary">Entrar</button>
+        <p id="login-error" class="error hidden">Senha incorreta</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════ PAINEL ═══════════════ -->
+  <div id="panel" class="hidden">
+    <header>
+      <span class="logo">🍔 Klebinho Bot</span>
+      <div id="status-badge" class="badge badge-off">Desligado</div>
+      <button id="logout-btn" class="btn btn-ghost btn-sm">Sair</button>
+    </header>
+
+    <main>
+      <!-- ── Controles ── -->
+      <section class="card">
+        <h2>Controle do Bot</h2>
+        <div class="controls-row">
+          <button id="start-btn" class="btn btn-success">▶ Ligar Bot</button>
+          <button id="stop-btn"  class="btn btn-danger">■ Desligar Bot</button>
+        </div>
+        <p id="control-msg" class="control-msg"></p>
+      </section>
+
+      <!-- ── QR Code ── -->
+      <section class="card" id="qr-section">
+        <h2>QR Code WhatsApp</h2>
+        <p class="hint">Escaneie com o WhatsApp para conectar. Após autenticar, o QR desaparece.</p>
+        <div id="qr-container">
+          <p id="qr-placeholder" class="qr-placeholder">Aguardando QR code...</p>
+          <canvas id="qr-canvas"></canvas>
+        </div>
+      </section>
+
+      <!-- ── Instruções ── -->
+      <section class="card">
+        <h2>Instruções do Bot</h2>
+        <p class="hint">Edite o prompt do atendente e salve. As alterações valem a partir da próxima mensagem.</p>
+        <textarea id="instructions-area" rows="25" spellcheck="false"></textarea>
+        <div class="save-row">
+          <button id="save-btn" class="btn btn-primary">💾 Salvar Instruções</button>
+          <span id="save-msg" class="save-msg"></span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- QR Code library from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
