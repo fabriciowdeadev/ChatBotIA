@@ -52,7 +52,7 @@
         <p class="hint">Escaneie com o WhatsApp para conectar. Após autenticar, o QR desaparece.</p>
         <div id="qr-container">
           <p id="qr-placeholder" class="qr-placeholder">Aguardando QR code...</p>
-          <canvas id="qr-canvas"></canvas>
+          <img id="qr-img" src="" alt="QR Code" style="display:none;border-radius:8px;max-width:220px;" />
         </div>
       </section>
 
@@ -69,8 +69,6 @@
     </main>
   </div>
 
-  <!-- QR Code library from CDN -->
-  <script src="/qrcode.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="app.js"></script>
 </body>

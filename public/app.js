@@ -19,7 +19,7 @@
   const controlMsg        = document.getElementById('control-msg');
 
   const qrPlaceholder     = document.getElementById('qr-placeholder');
-  const qrCanvas          = document.getElementById('qr-canvas');
+  const qrImg             = document.getElementById('qr-img');
 
   const instructionsArea  = document.getElementById('instructions-area');
   const saveBtn           = document.getElementById('save-btn');
@@ -45,18 +45,16 @@
   }
 
   // ─── QR Code rendering ────────────────────────────────────────────────────────
-  function showQR(qrText) {
-    if (!qrText) {
-      qrCanvas.style.display = 'none';
+  function showQR(dataUrl) {
+    if (!dataUrl) {
+      qrImg.style.display = 'none';
       qrPlaceholder.style.display = '';
       qrPlaceholder.textContent = 'QR lido com sucesso! Bot conectado.';
       return;
     }
-    QRCode.toCanvas(qrCanvas, qrText, { width: 220, margin: 2, color: { dark: '#000', light: '#fff' } }, (err) => {
-      if (err) { console.error(err); return; }
-      qrCanvas.style.display = 'block';
-      qrPlaceholder.style.display = 'none';
-    });
+    qrImg.src = dataUrl;
+    qrImg.style.display = 'block';
+    qrPlaceholder.style.display = 'none';
   }
 
   // ─── Login ────────────────────────────────────────────────────────────────────

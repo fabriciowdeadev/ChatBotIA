@@ -146,8 +146,6 @@ main {
   border-radius: 8px;
   padding: 1rem;
 }
-.qr-placeholder { color: var(--muted); font-size: 0.9rem; }
-#qr-canvas { display: none; border-radius: 8px; max-width: 220px; }
 
 /* ── Instructions ───────────────────────────────── */
 #instructions-area {

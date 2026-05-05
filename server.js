@@ -3,6 +3,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const { Client, LocalAuth } = require('whatsapp-web.js');
+const QRCode = require('qrcode');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
 const fs = require('fs');
@@ -14,7 +15,7 @@ const io = new Server(server);
 
 app.use(express.json());
 app.use(express.static('public'));
-app.use('/qrcode.min.js', express.static(path.join(__dirname, 'node_modules/qrcode/build/qrcode.min.js')));
+
 
 // ─── Config ────────────────────────────────────────────────────────────────────
 const PANEL_PASSWORD    = process.env.PANEL_PASSWORD || 'lanch102938';
@@ -175,10 +176,16 @@ function startBot() {
     },
   });
 
-  waClient.on('qr', (qr) => {
+  waClient.on('qr', async (qr) => {
     console.log('[Bot] QR Code gerado — aguardando leitura...');
     currentQR = qr;
-    io.emit('qr', qr);
+    try {
+      const dataUrl = await QRCode.toDataURL(qr, { width: 300, margin: 2 });
+      io.emit('qr', dataUrl);
+    } catch (e) {
+      console.error('[Bot] Erro ao gerar QR imagem:', e.message);
+      io.emit('qr', qr);
+    }
     io.emit('status', 'waiting_qr');
   });
 
