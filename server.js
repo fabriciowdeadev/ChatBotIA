@@ -27,10 +27,15 @@ const PORT              = process.env.PORT || 3000;
 // ─── Paths ─────────────────────────────────────────────────────────────────────
 const DATA_DIR          = path.join(__dirname, 'data');
 const CLIENTS_FILE      = path.join(DATA_DIR, 'clients.json');
-const INSTRUCTIONS_FILE = path.join(__dirname, 'instrucoes.txt');
+const INSTRUCTIONS_FILE = path.join(DATA_DIR, 'instrucoes.txt');
+const INSTRUCTIONS_DEFAULT = path.join(__dirname, 'instrucoes.txt');
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(CLIENTS_FILE)) fs.writeFileSync(CLIENTS_FILE, '{}');
+// On first run, copy default instructions into the data volume
+if (!fs.existsSync(INSTRUCTIONS_FILE) && fs.existsSync(INSTRUCTIONS_DEFAULT)) {
+  fs.copyFileSync(INSTRUCTIONS_DEFAULT, INSTRUCTIONS_FILE);
+}
 
 // ─── State ─────────────────────────────────────────────────────────────────────
 let waClient    = null;
