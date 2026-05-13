@@ -235,8 +235,8 @@ function startBot() {
 
   // Dedup set: prevents processing the same message twice when both events fire
   const processedIds = new Set();
-  // Track IDs of messages sent by the bot itself (to not trigger owner-pause)
-  const botSentIds = new Set();
+  // Cooldown: { phoneNumber: timestamp } — suppress owner-pause for 5s after bot sends a reply
+  const botReplyCooldown = {};
 
   // Listen on both events for maximum compatibility
   const handleMessage = async (message) => {
@@ -248,9 +248,12 @@ function startBot() {
 
     // ── Dono mandou mensagem para um cliente → pausar robô por 2h ──
     if (message.fromMe) {
-      // Ignore messages sent by the bot itself
-      if (msgId && botSentIds.has(msgId)) { botSentIds.delete(msgId); return; }
       const to = (message.to || message._data?.id?.remote || '').replace(/@c\.us$|@lid$/, '');
+      // Se o bot acabou de responder a esse número (últimos 5s), é eco do bot — ignorar
+      if (to && botReplyCooldown[to] && Date.now() - botReplyCooldown[to] < 5000) {
+        delete botReplyCooldown[to];
+        return;
+      }
       if (to && !message.from.endsWith('@g.us')) {
         ownerPaused[to] = Date.now();
         console.log('[Bot] Pausa de 2h ativada para (dono):', to);
@@ -292,9 +295,8 @@ function startBot() {
       const reply = await chatWithGemini(phoneNumber, body);
       if (reply) {
         console.log('[Msg] Resposta para', phoneNumber + ':', reply.substring(0, 80));
-        const sent = await message.reply(reply);
-        const sentId = sent?.id?._serialized || sent?.id?.id;
-        if (sentId) { botSentIds.add(sentId); setTimeout(() => botSentIds.delete(sentId), 15000); }
+        botReplyCooldown[phoneNumber] = Date.now();
+        await message.reply(reply);
       }
     } catch (err) {
       console.error('[Bot] Erro ao responder:', err.message, err.stack);
