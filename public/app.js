@@ -16,6 +16,7 @@
   const statusBadge       = document.getElementById('status-badge');
   const startBtn          = document.getElementById('start-btn');
   const stopBtn           = document.getElementById('stop-btn');
+  const restartBtn        = document.getElementById('restart-btn');
   const controlMsg        = document.getElementById('control-msg');
 
   const qrPlaceholder     = document.getElementById('qr-placeholder');
@@ -100,6 +101,12 @@
 
   stopBtn.addEventListener('click', async () => {
     await botAction('/api/bot/stop');
+  });
+
+  restartBtn.addEventListener('click', async () => {
+    if (!confirm('Reiniciar o processo Node.js? O container será reiniciado pelo Docker.')) return;
+    await botAction('/api/bot/restart');
+    controlMsg.textContent = 'Processo reiniciando... aguarde ~10s e recarregue a página.';
   });
 
   async function botAction(url) {

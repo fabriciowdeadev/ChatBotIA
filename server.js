@@ -347,6 +347,13 @@ app.post('/api/bot/stop', verifyPassword, async (_req, res) => {
   res.json({ success: true, message: 'Bot parado.' });
 });
 
+app.post('/api/bot/restart', verifyPassword, async (_req, res) => {
+  res.json({ success: true, message: 'Reiniciando processo...' });
+  // Give the response time to reach the client before exiting.
+  // Docker/Dokploy will restart the container automatically.
+  setTimeout(() => process.exit(0), 500);
+});
+
 app.get('/api/status', (_req, res) => {
   res.json({ botRunning, hasQR: !!currentQR });
 });
