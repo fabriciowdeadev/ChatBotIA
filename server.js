@@ -296,7 +296,14 @@ function startBot() {
       if (reply) {
         console.log('[Msg] Resposta para', phoneNumber + ':', reply.substring(0, 80));
         botReplyCooldown[phoneNumber] = Date.now();
-        await message.reply(reply);
+        try {
+          await message.reply(reply);
+        } catch (replyErr) {
+          // Fallback: message.reply() can fail if internal Puppeteer context is stale.
+          // Use waClient.sendMessage() directly instead.
+          console.warn('[Bot] message.reply falhou, usando sendMessage direto:', replyErr.message);
+          await waClient.sendMessage(message.from, reply);
+        }
       }
     } catch (err) {
       console.error('[Bot] Erro ao responder:', err.message, err.stack);
